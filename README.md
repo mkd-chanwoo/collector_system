@@ -51,12 +51,26 @@ O  Final Packaging
 ---
 
 ## 4. Execution Order
+start
+watch log
+pid check
+kill pid
 
-    python run_downloader.py
-    python run_normalizer.py
-    python run_pipeline.py
-    python run_generate_charts.py
-
+    nohup python -u pipeline/run_downloader.py >> pipeline/log/log_downloader.txt 2>&1 &
+    tail -f pipeline/log/log_downloader.txt
+    pgrep -fl run_downloader.py
+    kill PID
+    
+    nohup python -u pipeline/run_normalizer.py >> pipeline/log/log_normalizer.txt 2>&1 &
+    tail -f pipeline/log/log_normalizer.txt
+    pgrep -fl run_normalizer.py
+    kill PID
+    
+    nohup python -u pipeline/run_pipeline.py >> pipeline/log/log_pipeline.txt 2>&1 &
+    tail -f pipeline/log/log_pipeline.txt
+    pgrep -fl run_pipeline.py
+    kill PID
+    
 ---
 
 ## 5. Directory Structure
@@ -64,16 +78,26 @@ O  Final Packaging
     collector_system/
     ├── config/
     ├── core/
+    │   ├── modules_document_datadown/
+    │   ├── modules_document_processing/
     ├── data/
     │   ├── raw/
     │   ├── normalized/
     │   ├── shards/
+    │   ├── meta/
     ├── evidence/
     │   ├── charts/
     ├── logs/
+    │   ├── downloader_log/
     ├── reports/
+    │   ├── Daily/
     ├── state/
+    ├── tokenizer/
+    ├── utils/
     ├── checkpoints/
+    ├── collector_system/
+    │   ├── download_checkpoint
+    │   ├── normalizer_checkpoint
 
 ---
 
@@ -112,25 +136,43 @@ O  Final Packaging
 ## 7. Core Modules
 
 ### Source & Ingestion
-- SourceManager
+- SourceManager 
+-- This module is responsible for loading and managing configuration files used throughout the pipeline.--
+  
 - Downloader
+--This module retrieves data using a streaming approach, processing it line-by-line in JSONL format and dumping the raw output into the data/raw directory without modification.--
+  
 - DownloadCheckpoint
 - IntegrityValidator
+--This module validates raw stored data by checking for missing lines and detecting encoding issues through comparison with the original dataset, ensuring data completeness and integrity.--
 
 ### Processing
 - Normalizer
+--The text is normalized by removing null characters, unifying line breaks, converting multi-line text into a single line, collapsing multiple whitespaces, and trimming leading/trailing spaces.--
+  
 - QualityFilter
+  --This module performs quality filtering using heuristic rules, including length constraints, URL/HTML pattern detection via regex, and text structure analysis. It applies SimHash for template/near-duplicate detection, n-gram repetition analysis for redundancy, and Shannon entropy to filter low-information content, along with boilerplate phrase matching to remove non-informative text.--
+  
 - LanguageFilter
+--This module performs language detection using a FastText pre-trained model for primary classification, leveraging its speed and high accuracy on short text segments. It preprocesses text to remove non-printable characters and limits input length for efficiency, while using langdetect as a fallback mechanism to ensure robustness in case of model failure, returning both predicted language and confidence score.--
+
 - Deduplicator
+--This module performs deduplication using a two-stage approach: exact duplicate detection via SHA256 hashing and near-duplicate detection using MinHash with LSH (Locality Sensitive Hashing). Exact duplicates are efficiently tracked with a hash set, while semantic similarity is captured by generating n-gram (shingle) based MinHash signatures and querying them through an LSH index, enabling scalable and approximate duplicate detection in large datasets.--
+
 - ToxicFilter
+--This module performs toxicity filtering using a hybrid approach: rule-based bad word detection via the better_profanity library and model-based scoring using the Detoxify deep learning model. To improve efficiency, it applies random sampling and input length truncation before inference, reducing computational cost while still capturing high-toxicity content through a threshold-based classification.--
 
 ### Measurement & Control
 - TokenCounter
 - QuotaController
+--Tracks token usage per domain and source, enforcing predefined token budgets with real-time updates and warning thresholds (50–100%) to prevent quota overflow and maintain balanced dataset distribution.--
 
 ### Validation & Output
 - Auditor
+--Validates documents using rule-based checks, including required field presence, text type and non-emptiness, UTF-8 encoding validity, consistency between text length and char_count, positive token count, and printable character ratio to detect corrupted or broken text.--
+  
 - Sharder
+--Writes processed documents into fixed-size JSONL shards, batching data and saving both shard files and corresponding metadata (document count, token count). It maintains shard indexing for continuity and recovery, enabling efficient storage, downstream training usage, and traceable dataset packaging.--
 
 ### Monitoring & Reporting
 - Reporter
@@ -140,7 +182,7 @@ O  Final Packaging
 
 ---
 
-## 8. Data Format
+## 8.1 Data Format After Format Normalization
 
     {
       "doc_id": "...",
@@ -154,6 +196,18 @@ O  Final Packaging
       "raw_path": "...",
       "processing_version": "v1"
     }
+
+## 8.2 Data Format After Pipeline
+
+    {
+      "doc_id": "...",
+      "source": "...",
+      "domain": "...",
+      "text": "...",
+      "char_count": "...",
+      "tokens_count": "..."
+    }
+
 
 ---
 
@@ -170,6 +224,7 @@ O  Final Packaging
 ---
 
 ## 10. Evidence Structure
+### not yet but I record in checkpoint the total count of filtering. I have to implement this.
 
     evidence/
     ├── download_logs/
@@ -228,6 +283,7 @@ This is **infrastructure-level engineering**, not scripting.
     python run_normalizer.py
     python run_pipeline.py
     python run_generate_charts.py
+    
 
 ## 15. Limitations & Future Improvements
 
@@ -271,42 +327,7 @@ However, several aspects still require improvement to achieve full production-gr
 
 ---
 
-### 15.3 Normalization Structure
-
-**Current limitations**
-- normalization is implemented as a utility function rather than a pipeline module  
-- limited integration with logging and metadata tracking  
-
-**Impact**
-- incomplete traceability of preprocessing steps  
-- reduced audit visibility  
-
-**Planned improvements**
-- refactor normalization into a dedicated pipeline module  
-- integrate normalization stage with metadata tracking  
-- log transformation statistics  
-
----
-
-### 15.4 I/O Performance Optimization
-
-**Current limitations**
-- frequent flush operations  
-- high frequency of file writes  
-- reporting executed too often  
-
-**Impact**
-- unnecessary I/O overhead  
-- reduced throughput in large-scale processing  
-
-**Planned improvements**
-- adopt batch-based writing (e.g., 1k–10k documents)  
-- reduce flush frequency  
-- decouple reporting from processing loop  
-
----
-
-### 15.5 Error Handling & Logging
+### 15.3 Error Handling & Logging
 
 **Current limitations**
 - reliance on print-based error handling  
@@ -323,23 +344,7 @@ However, several aspects still require improvement to achieve full production-gr
 
 ---
 
-### 15.6 System Monitoring
-
-**Current limitations**
-- no tracking of system-level metrics (CPU, RAM, GPU)  
-
-**Impact**
-- limited visibility into performance bottlenecks  
-- difficulty in resource optimization  
-
-**Planned improvements**
-- integrate system monitoring tools (e.g., psutil)  
-- track resource usage during pipeline execution  
-- extend monitoring outputs for dashboard integration  
-
----
-
-### 15.7 Shard Metadata Completeness
+### 15.4 Shard Metadata Completeness
 
 **Current limitations**
 - shard metadata contains only basic statistics  
@@ -358,9 +363,9 @@ However, several aspects still require improvement to achieve full production-gr
 ### 15.8 Configuration Management
 
 **Current limitations**
-- 일부 경로 및 파라미터가 코드에 하드코딩됨 - 하지만 repo 전체를 복사한다면 문제 없음.
+- Some paths and parameters are hardcoded into code - but no problem if you copy the entire repo.
 
 **Planned improvements**
-- 중앙 설정 관리 시스템 구축(필요하면)
+- Building a centralized setup management system (if required)
 
 ---
