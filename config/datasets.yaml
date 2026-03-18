@@ -1,0 +1,13 @@
+datasets:
+
+  falcon-refinedweb:
+    hf_name: tiiuae/falcon-refinedweb
+    config: None
+    split: train
+    field: content
+    domain: english
+    language: en
+    streaming: true
+    target_tokens: 100000
+    url: https://huggingface.co/datasets/tiiuae/falcon-refinedweb
+    expected_size:

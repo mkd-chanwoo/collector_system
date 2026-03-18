@@ -1,0 +1,25 @@
+
+Loading dataset: tiiuae/falcon-refinedweb
+Split: train
+Streaming: True
+Using custom data configuration tiiuae--falcon-refinedweb-dd598966d184cf16
+Dumping raw dataset: 0it [00:00, ?it/s]Dumping raw dataset: 1it [00:07,  7.64s/it]Dumping raw dataset: 10001it [00:14, 801.97it/s]Dumping raw dataset: 20001it [00:21, 1122.38it/s]Dumping raw dataset: 30000it [00:28, 1049.67it/s]
+Traceback (most recent call last):
+  File "/home/work/trainee/collector_system/pipeline/run_downloader.py", line 181, in <module>
+    run_downloader()
+  File "/home/work/trainee/collector_system/pipeline/run_downloader.py", line 133, in run_downloader
+    for i, sample in enumerate(tqdm(dataset, desc="Dumping raw dataset")):
+  File "/home/work/trainee/venv/lib/python3.12/site-packages/tqdm/std.py", line 1181, in __iter__
+    for obj in iterable:
+  File "/home/work/trainee/venv/lib/python3.12/site-packages/datasets/iterable_dataset.py", line 503, in __iter__
+    for key, example in self._iter():
+  File "/home/work/trainee/venv/lib/python3.12/site-packages/datasets/iterable_dataset.py", line 500, in _iter
+    yield from ex_iterable
+  File "/home/work/trainee/venv/lib/python3.12/site-packages/datasets/iterable_dataset.py", line 87, in __iter__
+    yield from self.generate_examples_fn(**self.kwargs)
+  File "/home/work/trainee/venv/lib/python3.12/site-packages/datasets/iterable_dataset.py", line 443, in wrapper
+    for key, table in generate_tables_fn(**kwargs):
+  File "/home/work/trainee/venv/lib/python3.12/site-packages/datasets/packaged_modules/parquet/parquet.py", line 59, in _generate_tables
+    pa_table = pa.Table.from_batches([record_batch])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

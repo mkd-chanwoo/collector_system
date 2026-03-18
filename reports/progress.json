@@ -1,0 +1,15 @@
+{
+  "timestamp": 1773803489.5371804,
+  "elapsed_seconds": 654.4735336303711,
+  "documents_processed": 663,
+  "tokens_processed": 268504,
+  "nontext_document": 0,
+  "quality_filtering": 69,
+  "low_language_confidence": 13,
+  "no_eng_kor": 0,
+  "exactly_duplicate": 0,
+  "near_duplicate": 0,
+  "toxic_filtering": 255,
+  "audit": 0,
+  "processed_documents_dataset": 1000
+}

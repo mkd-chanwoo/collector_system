@@ -1,0 +1,18 @@
+tokenizer_path: tokenizer/keural_tokenizer.model
+
+global_target_tokens: 2000000000
+
+shard_size_tokens: 50000
+
+deduplication:
+  minhash_num_perm: 128
+  similarity_threshold: 0.85
+
+language_filter:
+  primary: fasttext
+  fallback: langdetect
+  confidence_threshold: 0.7
+
+quality_filter:
+  min_chars: 200
+  max_chars: 200000
